@@ -789,6 +789,7 @@ async function startVoiceRecording() {
     voiceRecorder.start(250);
     isRecordingVoice.value = true;
     recordingSeconds.value = 0;
+    soundFX.startVoiceChatRecording();
     soundFX.playTap();
 
     if (recordingInterval) clearInterval(recordingInterval);
@@ -802,6 +803,7 @@ async function startVoiceRecording() {
   } catch (err: any) {
     console.warn('Microphone access denied:', err);
     isRecordingVoice.value = false;
+    soundFX.stopVoiceChatRecording();
     const errorMsg = String(err?.message || err);
     if (errorMsg.includes('Permission') || errorMsg.includes('denied') || errorMsg.includes('NotAllowedError')) {
       micErrorTip.value = '麦克风权限未开启，请在系统设置中允许录音权限';
@@ -827,6 +829,7 @@ function stopAndSendVoiceRecording() {
   const duration = Math.max(1, recordingSeconds.value);
   isRecordingVoice.value = false;
   recordingSeconds.value = 0;
+  soundFX.stopVoiceChatRecording();
 
   voiceRecorder.onstop = () => {
     try {
@@ -868,6 +871,7 @@ function cancelVoiceRecording() {
   }
   isRecordingVoice.value = false;
   recordingSeconds.value = 0;
+  soundFX.stopVoiceChatRecording();
   if (voiceRecorder) {
     try {
       voiceRecorder.stop();
@@ -922,6 +926,8 @@ function playVoiceBroadcast(audioUrl: string, sender: string, duration = 2) {
       } catch {}
       activePlayingAudio = null;
     }
+    soundFX.startVoiceChatPlayback();
+
     const audio = new Audio(audioUrl);
     audio.volume = 1.0;
     activePlayingAudio = audio;
@@ -948,18 +954,31 @@ function playVoiceBroadcast(audioUrl: string, sender: string, duration = 2) {
       console.warn('Playback WebAudio gain boost fallback to native audio:', e);
     }
 
+    let hasEnded = false;
+    const finishPlayback = () => {
+      if (!hasEnded) {
+        hasEnded = true;
+        soundFX.stopVoiceChatPlayback();
+      }
+    };
+
     audio.onended = () => {
       activePlayingVoice.value = null;
       activePlayingAudio = null;
+      finishPlayback();
     };
     audio.onerror = () => {
       activePlayingVoice.value = null;
       activePlayingAudio = null;
+      finishPlayback();
     };
     audio.play().catch((err) => {
       console.warn('Voice auto-play policy:', err);
+      finishPlayback();
     });
-  } catch {}
+  } catch {
+    soundFX.stopVoiceChatPlayback();
+  }
 }
 
 // WebSocket message listener

@@ -1647,6 +1647,9 @@ function checkGameFinishAfterPlay(seat: number) {
       detailText: result.summary,
       finishedSeats: [...finishedSeats],
       allianceScoreResult: allianceScoreResult.value,
+      isRemote,
+      skipWs: isRemote,
+      seat: mySeat.value,
     });
   }
 }
@@ -2879,6 +2882,11 @@ function handleRemoteGameEvent(evt: any) {
     if (!finishedSeats.includes(winSeat)) {
       finishedSeats.push(winSeat);
     }
+    if (Array.isArray(evt.finishedSeats)) {
+      for (const s of evt.finishedSeats) {
+        if (!finishedSeats.includes(s)) finishedSeats.push(s);
+      }
+    }
     const res = calculateYansanSettlement(
       selectedRoom.value || '5-10',
       winSeat,
@@ -2893,9 +2901,28 @@ function handleRemoteGameEvent(evt: any) {
       score: Math.abs(res.seatScores[mySeat.value] || 0),
       summary: res.summary,
       seatScores: res.seatScores,
+      isTie: res.isTie,
     };
     drawTable();
     emitStatus();
+
+    const myDelta = res.seatScores[mySeat.value] || 0;
+    if (myDelta > 0) {
+      if (typeof soundFX.playVictory === 'function') soundFX.playVictory();
+    } else if (myDelta < 0) {
+      if (typeof soundFX.playDefeat === 'function') soundFX.playDefeat();
+    }
+
+    emit('move', {
+      winner: winSeat,
+      pointsDelta: myDelta,
+      detailText: res.summary,
+      finishedSeats: [...finishedSeats],
+      allianceScoreResult: allianceScoreResult.value,
+      isRemote: true,
+      skipWs: true,
+      seat: mySeat.value,
+    });
   }
 
   if (evt.seat === mySeat.value) return;

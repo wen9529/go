@@ -844,11 +844,22 @@ func setupRoutes(h *Hub, distDir string) http.Handler {
 		}
 
 		outBytes, err := json.MarshalIndent(currentDB, "", "  ")
-		if err == nil {
-			_ = os.WriteFile(databaseFile, outBytes, 0644)
+		var respCoins interface{}
+		var respRating interface{}
+		var respLevel interface{}
+		if payload.Profile != nil {
+			respCoins = payload.Profile["coins"]
+			respRating = payload.Profile["rating"]
+			respLevel = payload.Profile["level"]
 		}
 
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"coins":   respCoins,
+			"rating":  respRating,
+			"level":   respLevel,
+			"profile": payload.Profile,
+		})
 	})
 
 	// 6. SPA 静态前端资源托管 (优先本地热加载，无文件时直接从 //go:embed 二进制内存中读取)

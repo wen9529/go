@@ -1765,6 +1765,7 @@ async function startVoiceRecording() {
     voiceRecorder.start(250);
     isRecordingVoice.value = true;
     recordingSeconds.value = 0;
+    soundFX.startVoiceChatRecording();
     if (soundPromptEnabled.value) soundFX.playTap();
 
     if (recordingInterval) clearInterval(recordingInterval);
@@ -1776,6 +1777,7 @@ async function startVoiceRecording() {
     }, 1000);
   } catch (err: any) {
     isRecordingVoice.value = false;
+    soundFX.stopVoiceChatRecording();
     micErrorTip.value = '麦克风权限未开启或设备不支持';
     if (soundPromptEnabled.value) soundFX.playTap();
   }
@@ -1787,6 +1789,7 @@ function stopAndSendVoiceRecording() {
   const duration = Math.max(1, recordingSeconds.value);
   isRecordingVoice.value = false;
   recordingSeconds.value = 0;
+  soundFX.stopVoiceChatRecording();
 
   voiceRecorder.onstop = () => {
     try {
@@ -1812,6 +1815,7 @@ function cancelVoiceRecording() {
   if (recordingInterval) { clearInterval(recordingInterval); recordingInterval = null; }
   isRecordingVoice.value = false;
   recordingSeconds.value = 0;
+  soundFX.stopVoiceChatRecording();
   if (voiceRecorder) { try { voiceRecorder.stop(); } catch {} voiceRecorder = null; }
   if (voiceStream) { try { voiceStream.getTracks().forEach((track: any) => track.stop()); } catch {} voiceStream = null; }
   if (recordingAudioCtx) { try { recordingAudioCtx.close(); } catch {} recordingAudioCtx = null; }
@@ -1876,6 +1880,7 @@ function playVoiceMessage(m: ChatMessageItem) {
 function playVoiceBroadcast(audioUrl: string, sender: string, duration = 2, messageId?: string) {
   try {
     if (activePlayingAudio) { try { activePlayingAudio.pause(); } catch {} activePlayingAudio = null; }
+    soundFX.startVoiceChatPlayback();
     const audio = new Audio(audioUrl);
     audio.volume = 1.0;
     activePlayingAudio = audio;
@@ -1895,18 +1900,32 @@ function playVoiceBroadcast(audioUrl: string, sender: string, duration = 2, mess
       }
     } catch {}
 
+    let hasEnded = false;
+    const finishPlayback = () => {
+      if (!hasEnded) {
+        hasEnded = true;
+        soundFX.stopVoiceChatPlayback();
+      }
+    };
+
     audio.onended = () => {
       activePlayingVoice.value = null;
       activePlayingAudio = null;
       activePlayingAudioMessageId.value = null;
+      finishPlayback();
     };
     audio.onerror = () => {
       activePlayingVoice.value = null;
       activePlayingAudio = null;
       activePlayingAudioMessageId.value = null;
+      finishPlayback();
     };
-    audio.play().catch(() => {});
-  } catch {}
+    audio.play().catch(() => {
+      finishPlayback();
+    });
+  } catch {
+    soundFX.stopVoiceChatPlayback();
+  }
 }
 
 function handleWsMessage(event: MessageEvent) {

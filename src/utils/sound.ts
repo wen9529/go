@@ -180,6 +180,40 @@ class SoundEffects {
     }
   }
 
+  // 语音对讲与出牌播报互斥控制：录制中或收听中暂停出牌语音播报，避免麦克风录入杂音或声音混叠
+  private isRecordingVoiceChat = false;
+  private isPlayingVoiceChat = false;
+  private cardVoiceSuppressed = false;
+
+  public setCardVoiceSuppressed(suppressed: boolean) {
+    this.cardVoiceSuppressed = suppressed;
+    if (suppressed) {
+      this.stopCurrentVoice();
+    }
+  }
+
+  public startVoiceChatRecording() {
+    this.isRecordingVoiceChat = true;
+    this.stopCurrentVoice();
+  }
+
+  public stopVoiceChatRecording() {
+    this.isRecordingVoiceChat = false;
+  }
+
+  public startVoiceChatPlayback() {
+    this.isPlayingVoiceChat = true;
+    this.stopCurrentVoice();
+  }
+
+  public stopVoiceChatPlayback() {
+    this.isPlayingVoiceChat = false;
+  }
+
+  public isCardVoiceSuppressed(): boolean {
+    return this.cardVoiceSuppressed || this.isRecordingVoiceChat || this.isPlayingVoiceChat;
+  }
+
   private bindGlobalUnlock() {
     if (typeof window === 'undefined' || this.isUnlocked) return;
     const unlock = () => {
@@ -743,6 +777,7 @@ class SoundEffects {
     options?: { isFemale?: boolean; text?: string; pitch?: number; rate?: number }
   ) {
     if (!this.enabled || typeof window === 'undefined') return;
+    if (this.isCardVoiceSuppressed()) return;
 
     // 彻底移除“大获全胜/旗开得胜”语音播报，获胜动作仅播放清脆胜利音效
     if (action === 'win') {
@@ -853,8 +888,9 @@ class SoundEffects {
   }
 
   // Voice speech synthesis for poker phrases and announcements (100% 离线免翻墙·0ms 瞬间点播)
-  public async speakVoice(text: string, pitch = 1.0, rate = 1.05, isFemale = false) {
+  public async speakVoice(text: string, pitch = 1.0, rate = 1.05, isFemale = false, isChatVoice = false) {
     if (!this.enabled || typeof window === 'undefined') return;
+    if (this.isCardVoiceSuppressed() && !isChatVoice) return;
     const clean = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。！、？]/g, '').trim();
     if (!clean) return;
 
@@ -1058,7 +1094,7 @@ class SoundEffects {
 
   // 输赢分专属语音播报 (仅玩家本地设备能够听到，精确播放用户要求的专属结算语音)
   public speakScoreResult(score: number, isWin: boolean, isTie = false) {
-    if (!this.enabled || typeof window === 'undefined') return;
+    if (!this.enabled || typeof window === 'undefined' || this.isCardVoiceSuppressed()) return;
     const now = Date.now();
     if (now - this.lastScoreSpokenTime < 2200) return;
     this.lastScoreSpokenTime = now;

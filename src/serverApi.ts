@@ -2047,9 +2047,9 @@ export async function handleApiRoute(
           return true;
         }
 
-        // 服务端数据库作为资产权威源：若后台管理员刚调整了筹码，以服务端数值为准；同时支持正常战绩同步
-        if (typeof existing.coins !== 'number') {
-          existing.coins = Math.max(0, Math.floor(Number(payload.profile.coins) || 0));
+        // 同步玩家对局结算后的真实积分与筹码资产
+        if (typeof payload.profile.coins === 'number' && !isNaN(payload.profile.coins)) {
+          existing.coins = Math.max(0, Math.floor(Number(payload.profile.coins)));
         }
         if (payload.profile.name) existing.name = payload.profile.name;
         if (payload.profile.avatar) existing.avatar = payload.profile.avatar;

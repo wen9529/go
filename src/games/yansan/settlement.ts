@@ -7,8 +7,8 @@ import { calculateYansanSettlement as calculateYansanEngineSettlement } from './
 export { calculateYansanEngineSettlement };
 
 export function resolveYansanMoveSettlement(payload: YansanMovePayload): YansanSettlementResult {
-  const isWin = payload.winner === 0;
   const isTie = payload.winner === -1 || (typeof payload.pointsDelta === 'number' && payload.pointsDelta === 0);
+  const isWin = typeof payload.pointsDelta === 'number' ? payload.pointsDelta > 0 : payload.winner === 0;
 
   let scorePoints = 0;
   let coinsDelta = 0;
@@ -18,12 +18,12 @@ export function resolveYansanMoveSettlement(payload: YansanMovePayload): YansanS
   if (typeof payload.pointsDelta === 'number') {
     const pts = payload.pointsDelta;
     scorePoints = pts;
-    coinsDelta = pts * 30;
+    coinsDelta = pts;
     ratingDelta = Math.round(pts * 0.8);
     detailText = payload.detailText || (isTie ? '烟三势均力敌 · 本局打和' : (isWin ? '烟三先手出清大捷' : '烟三对局失利'));
   } else {
     scorePoints = isWin ? 10 : (isTie ? 0 : -10);
-    coinsDelta = isWin ? 450 : (isTie ? 0 : -200);
+    coinsDelta = isWin ? 20 : (isTie ? 0 : -20);
     ratingDelta = isWin ? 20 : (isTie ? 0 : -12);
     detailText = isWin ? '烟三先手出清大捷' : (isTie ? '烟三势均力敌 · 本局打和' : '烟三对局失利');
   }
