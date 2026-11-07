@@ -1,0 +1,8 @@
+{
+  "name": "go三个游戏27",
+  "description": "A high-performance Go and Vue chess platform running on Termux with real-time WebSocket multiplayer gameplay for Android.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
